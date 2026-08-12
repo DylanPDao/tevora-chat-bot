@@ -1,0 +1,75 @@
+// Auth.js's Prisma adapter schema (Account / Session / VerificationToken) is
+// deliberately absent. Those three models exist for OAuth token storage,
+// database sessions, and magic links respectively — this app uses credentials
+// auth with JWT sessions, so all three would ship permanently empty. See the
+// README write-up for the trade-off that choice implies.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7 removed `url` from this block — the connection string lives in
+// prisma.config.ts for CLI/migrate, and reaches PrismaClient via a driver adapter.
+datasource db {
+  provider = "postgresql"
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+model User {
+  id String @id @default(cuid())
+
+  // Stored lowercased — normalization happens in the user service so that
+  // @unique actually prevents Alice@x.com and alice@x.com being two accounts.
+  email        String  @unique
+  passwordHash String
+  name         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  conversations Conversation[]
+}
+
+model Conversation {
+  id     String @id @default(cuid())
+  userId String
+  title  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  // Every conversation read is "this user's, most recent first" — the sidebar
+  // query. Ordering in the index keeps that a single index scan.
+  @@index([userId, updatedAt(sort: Desc)])
+}
+
+model Message {
+  id             String      @id @default(cuid())
+  conversationId String
+  role           MessageRole
+
+  // Source of truth: the AI SDK v7 UIMessage `parts` array, stored verbatim so
+  // a message round-trips exactly. Text-only today; this is what lets images,
+  // files, and tool calls land later without a migration.
+  parts Json
+
+  // Denormalized plain text derived from `parts`. Exists so the sidebar preview
+  // and conversation titles don't parse JSON, and so full-text search stays
+  // possible later. INVARIANT: written only by the message service alongside
+  // `parts`, never edited independently — `parts` always wins.
+  text String
+
+  createdAt DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  // Thread reads are always "this conversation, oldest first".
+  @@index([conversationId, createdAt])
+}
