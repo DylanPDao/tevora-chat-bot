@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: tevora-chat-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tevora
+      POSTGRES_PASSWORD: tevora
+      POSTGRES_DB: tevora_chat
+    ports:
+      - "5432:5432"
+    volumes:
+      - tevora-chat-pgdata:/var/lib/postgresql/data
+    # Prisma migrations run against this immediately after `docker compose up -d`,
+    # so wait for real readiness rather than just the container starting.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tevora -d tevora_chat"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  tevora-chat-pgdata:
