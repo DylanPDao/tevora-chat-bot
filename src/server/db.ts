@@ -14,6 +14,15 @@ function createPrismaClient() {
 
   return new PrismaClient({
     adapter,
+    // `passwordHash` is dropped from every result unless a query asks for it
+    // by name. Until now nothing returned it only because `user-service.ts`
+    // selects explicitly everywhere — true today, but a convention rather than
+    // a guarantee. This makes a careless `db.user.findUnique({ where })` in a
+    // later phase incapable of leaking the hash.
+    //
+    // `verifyCredentials` is unaffected: an explicit `select` still wins, and
+    // `omit: { passwordHash: false }` is the deliberate opt-out.
+    omit: { user: { passwordHash: true } },
     log: env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
 }
