@@ -22,8 +22,10 @@ enum MessageRole {
 model User {
   id String @id @default(cuid())
 
-  // Stored lowercased — normalization happens in the user service so that
-  // @unique actually prevents Alice@x.com and alice@x.com being two accounts.
+  // Stored lowercased. Normalization happens in
+  // features/auth/schemas/auth-schemas.ts, which both the forms and the
+  // handlers parse with, so @unique actually prevents Alice@x.com and
+  // alice@x.com being two accounts.
   email        String  @unique
   passwordHash String
   name         String?
