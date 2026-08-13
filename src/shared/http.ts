@@ -60,11 +60,14 @@ function apiError(
  */
 export function validationFailed(error: ZodError): Response {
   const { fieldErrors, formErrors } = flattenError(error);
+  const fields = fieldErrors as Record<string, string[]>;
 
   return apiError(
     "VALIDATION_FAILED",
     formErrors[0] ?? "Some fields need fixing.",
-    fieldErrors as Record<string, string[]>,
+    // A whole-body failure (unparseable JSON, wrong type) has no per-field
+    // messages; omit the key rather than sending an empty object.
+    Object.keys(fields).length > 0 ? fields : undefined,
   );
 }
 
