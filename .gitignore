@@ -24,6 +24,10 @@
 .DS_Store
 *.pem
 
+# local agent tooling — kept out of the deliverable; how it was used is
+# described in the write-up instead. CLAUDE.md stays tracked deliberately.
+.claude/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
