@@ -26,11 +26,11 @@ by directory, not just by convention.
 | --- | --- | --- |
 | `src/app/` | — | **Routes only, kept thin.** Route groups `(auth)` and `(chat)`; handlers under `app/api/`. Pages render a feature component; handlers do auth → validate → call a service → respond. |
 | `src/server/` | **Backend** | Prisma, env, auth config, all business logic. Every file starts with `import "server-only"` and never reaches the browser. |
-| `src/server/features/<domain>/` | **Backend** | One service per domain — `auth`, `conversations`, `messages` — plus its server-only types. |
-| `src/features/<domain>/` | **Frontend** | The UI half of the same domain: `components/`, `hooks/`, and `schemas.ts`. Everything a feature's screens need, in one folder. |
-| `src/features/<domain>/schemas.ts` | **Shared** | The one exception to the tiers, and the reason it exists: a form and its handler must parse with the *same* Zod object or they drift. Plain validation logic, no secrets, safe on both sides. |
+| `src/server/features/<domain>/services/` | **Backend** | The service per domain — `auth`, `conversations`, `messages` — plus its server-only types. |
+| `src/features/<domain>/` | **Frontend** | The UI half of the same domain. Every concern is a directory, never a loose file at the feature root: `components/`, `hooks/`, `api/`, `schemas/`. |
+| `src/features/<domain>/api/` | **Frontend** | Typed `fetch` wrappers the hooks call. Client code that *calls* an endpoint — not the endpoint, which lives in `app/api/`. |
+| `src/features/<domain>/schemas/` | **Shared** | The one exception to the tiers, and the reason it exists: a form and its handler must parse with the *same* Zod object or they drift. Plain validation logic, no secrets, safe on both sides. Schemas are runtime values, so they are not filed under `types/`. |
 | `src/components/` | **Frontend** | Cross-feature only. `ui/` is shadcn (don't hand-edit); `layout/` is the app shell. Anything used by one feature belongs in that feature. |
-| `src/hooks/` | **Frontend** | Cross-feature hooks, plus whatever shadcn installs here. |
 | `src/shared/` | **Shared** | Isomorphic, nothing secret: `http.ts` is the error envelope every handler returns, `types/` holds shared declarations, `utils.ts` is shadcn's `cn`. |
 
 Two axes, deliberately: **tier first** (`server/` is the whole backend, one place
