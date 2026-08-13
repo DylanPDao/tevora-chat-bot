@@ -24,12 +24,19 @@ by directory, not just by convention.
 
 | Path | Tier | What |
 | --- | --- | --- |
-| `src/app/` | — | **Routes only, kept thin.** Route groups `(auth)` and `(chat)`; handlers under `app/api/`. Spans both tiers by necessity: Server Components and route handlers run server-side, page UI ships to the browser. |
-| `src/server/` | **Backend** | Prisma, env, auth config, all business logic. Never reaches the browser. |
-| `src/server/features/<domain>/` | **Backend** | One folder per domain — `auth`, `conversations`, `messages` — each holding its service and its server-only types. Schemas that a client also needs live in `src/shared/schemas/`, not here. |
-| `src/components/` | **Frontend** | `ui/` is shadcn (don't hand-edit); `auth/`, `chat/`, `layout/` are ours. |
-| `src/hooks/` | **Frontend** | Client hooks. |
-| `src/shared/` | **Shared** | Isomorphic, safe on both sides, nothing secret. `schemas/` holds the Zod contracts both a form and its handler import; `types/` holds shared declarations; `utils.ts` is shadcn's `cn`. |
+| `src/app/` | — | **Routes only, kept thin.** Route groups `(auth)` and `(chat)`; handlers under `app/api/`. Pages render a feature component; handlers do auth → validate → call a service → respond. |
+| `src/server/` | **Backend** | Prisma, env, auth config, all business logic. Every file starts with `import "server-only"` and never reaches the browser. |
+| `src/server/features/<domain>/` | **Backend** | One service per domain — `auth`, `conversations`, `messages` — plus its server-only types. |
+| `src/features/<domain>/` | **Frontend** | The UI half of the same domain: `components/`, `hooks/`, and `schemas.ts`. Everything a feature's screens need, in one folder. |
+| `src/features/<domain>/schemas.ts` | **Shared** | The one exception to the tiers, and the reason it exists: a form and its handler must parse with the *same* Zod object or they drift. Plain validation logic, no secrets, safe on both sides. |
+| `src/components/` | **Frontend** | Cross-feature only. `ui/` is shadcn (don't hand-edit); `layout/` is the app shell. Anything used by one feature belongs in that feature. |
+| `src/hooks/` | **Frontend** | Cross-feature hooks, plus whatever shadcn installs here. |
+| `src/shared/` | **Shared** | Isomorphic, nothing secret: `http.ts` is the error envelope every handler returns, `types/` holds shared declarations, `utils.ts` is shadcn's `cn`. |
+
+Two axes, deliberately: **tier first** (`server/` is the whole backend, one place
+to audit), **domain second** (`features/<domain>/` collects a slice's UI). The
+route handler stays in `app/` because in the App Router the file path *is* the
+URL — moving it would delete the endpoint.
 
 `app/` cannot move under a `frontend/` directory — Next.js requires it at the
 project root or under `src/` — and route handlers are backend code that has to
@@ -67,8 +74,13 @@ handlers.
 **Zod parses at every boundary.** Env at boot, credentials at sign-in, request
 bodies in every handler. Client forms and server handlers import the same schema
 so they cannot drift — which is why any schema a form touches lives in
-`src/shared/schemas/`. A `server-only` schema imported by a login form is a
-build error, so shared contracts cannot live in the feature folder.
+`src/features/<domain>/schemas.ts` rather than under `src/server/`. A
+`server-only` schema imported by a login form is a build error.
+
+**Errors go out through `src/shared/http.ts`.** `{ error: { code, message } }`,
+with the status derived from the code — 400 validation, 401 unauthenticated,
+404 not-found-*or*-not-owned, 409 email taken, 502 model unavailable. Clients
+branch on `code`, never on message text.
 
 **`useChat` and TanStack Query do not overlap.** `useChat` owns the active
 thread — messages, streaming, input, submit. TanStack Query owns the
