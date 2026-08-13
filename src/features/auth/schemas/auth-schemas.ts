@@ -47,7 +47,17 @@ export const registerSchema = z.object({
     .string()
     .min(PASSWORD_MIN, `Use at least ${PASSWORD_MIN} characters.`)
     .max(PASSWORD_MAX, `Use at most ${PASSWORD_MAX} characters.`),
-  name: z.string().trim().min(1).max(80).optional(),
+  /**
+   * Optional means an empty input is *absent*, not invalid — a blank box in
+   * the form and a missing key in the request body have to reach the service
+   * as the same `undefined`, or the field can't be skipped from the UI at all.
+   */
+  name: z
+    .string()
+    .trim()
+    .max(80, "Use at most 80 characters.")
+    .transform((value) => (value === "" ? undefined : value))
+    .optional(),
 });
 
 export type Credentials = z.infer<typeof credentialsSchema>;
