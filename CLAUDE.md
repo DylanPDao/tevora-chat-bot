@@ -97,14 +97,20 @@ assistant message. History stays consistent and the user can retry.
 Use `claude-opus-5` (the current Opus; `claude-fable-5` is the tier above).
 Two behaviors to respect:
 
-- **Thinking is on by default**, and `max_tokens` caps thinking *plus* response
-  text — a tight `maxTokens` truncates answers mid-sentence with no obvious
-  cause. Leave real headroom.
-- **`stop_reason: "refusal"`** is a successful HTTP 200 with empty or partial
-  content. Check it before reading content.
-
-Both sit under the AI SDK's abstraction, so verify how that layer surfaces them
-rather than assuming.
+- **Thinking is on by default**, and the token cap covers thinking *plus*
+  response text — a tight cap truncates answers mid-sentence with no obvious
+  cause. Leave real headroom. The option is **`maxOutputTokens`**; `maxTokens`
+  is not an option in `ai@7`, so setting it does nothing and this warning
+  silently fails to apply.
+- **A refusal is a successful HTTP 200** with empty or partial content, so check
+  before reading content. In `ai@7` the finish reason is an **object**, not a
+  string: `{ unified: 'stop' | 'length' | 'content-filter' | 'tool-calls' |
+  'error' | 'other', raw }`. Anthropic's `"refusal"` arrives in `.raw`;
+  `.unified` flattens it.
+- Context is **1M tokens** and the model is $5/M in, $25/M out — the window is
+  not the constraint for a chat app, but re-sending history every turn makes
+  cost grow with the square of conversation length. Prompt caching is the fix
+  (~0.1× on cache reads, 512-token minimum on this model) and is not built.
 
 ## AI SDK surface (verified against installed `ai@7`, `@ai-sdk/react@4`)
 
@@ -119,7 +125,20 @@ and are wrong here.
 - Options are `{ id, messages, transport, onFinish, onError, onData, ... }`.
   `messages` seeds server-loaded history; `onFinish` is the one seam where the
   conversations query gets invalidated.
-- HTTP to a route handler goes through `DefaultChatTransport` from `ai`.
+- HTTP to a route handler goes through `DefaultChatTransport` from `ai`. It
+  POSTs `{ id, messages, trigger, messageId }` — **the whole message array,
+  every turn, from the client**. Treat it as untrusted: take the conversation id
+  and the newest user message from it, and load history from the database rather
+  than replaying what the browser sent.
+- **`toUIMessageStreamResponse()` is deprecated**, as is the stream's `onFinish`
+  (→ `onEnd`). The current shape is `toUIMessageStream({ stream: result.stream,
+  … })` piped into `createUIMessageStreamResponse({ stream })`, both imported
+  from `ai`. `onEnd` receives `{ messages, isContinuation, isAborted }` and is
+  where the assistant message gets persisted.
+- `validateUIMessages` / `safeValidateUIMessages` from `ai` validate an incoming
+  `UIMessage[]` — better than hand-rolling a Zod schema for a type the SDK owns.
+  Keep them in the route handler; importing `ai` into a shared schema would drag
+  it into the client bundle.
 
 Before using any other AI SDK export, read its type in
 `node_modules/ai/dist/index.d.ts` first.
