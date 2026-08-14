@@ -17,14 +17,6 @@ Every conversation would have been readable without signing in. Thirty seconds
 of conversation caught something that's nearly invisible in review, because the
 diff is one string in an array.
 
-The same habit did quieter work too. Asking "what are our options here?" instead
-of "build this" turned up a Prisma feature that let me put the ownership check
-*inside* the database write rather than in an `if` wrapped around it — so
-there's no unguarded path for a future caller to stumble onto. It also caught me
-contradicting myself: I'd written down that conversations get created before
-streaming starts *and* that they're named after the first message, which can't
-both be true if creation happens first.
-
 **Making it check the installed packages instead of trusting its memory.** I put
 a rule in `CLAUDE.md`: read the actual type definitions before using anything
 from the AI SDK. Every single fact it offered from memory was for an older
