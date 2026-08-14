@@ -1,41 +1,26 @@
 "use client";
 
 import { SquarePen } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-import { useCreateConversation } from "@/features/conversations/hooks/use-create-conversation";
 import { Button } from "@/components/ui/button";
 
 /**
- * Creates an empty thread and opens it.
+ * Opens the empty composer. It deliberately creates nothing.
  *
- * This is the interim shape. Decisions #13 and #14 together mean a conversation
- * should be created *with* its opening message — explicitly rather than lazily
- * inside `/api/chat`, and titled from that message. There is no composer until
- * Phase 3, so for now this creates an untitled thread and Phase 3 changes the
- * caller to pass `firstMessage`. The endpoint and service do not change.
+ * Creating an untitled conversation here was the interim shape while there was
+ * no composer to type into; it is what made every thread "New conversation".
+ * Now the conversation is created by the first message, so its title is that
+ * message (decisions #13 and #14) — and clicking this repeatedly no longer
+ * litters the sidebar with empty threads.
  */
 export function NewChatButton(): React.ReactNode {
-  const router = useRouter();
-  const { mutate, isPending } = useCreateConversation();
-
   return (
-    <Button
-      variant="outline"
-      className="w-full justify-start"
-      disabled={isPending}
-      onClick={() => {
-        mutate(undefined, {
-          // Navigate only once the id exists — there is nothing to route to
-          // before the server assigns one, which is the round trip decision
-          // #13 accepted in exchange for keeping creation out of the
-          // streaming path.
-          onSuccess: (conversation) => router.push(`/chat/${conversation.id}`),
-        });
-      }}
-    >
-      <SquarePen className="size-4" />
-      {isPending ? "Creating…" : "New chat"}
+    <Button asChild variant="outline" className="w-full justify-start">
+      <Link href="/chat">
+        <SquarePen className="size-4" />
+        New chat
+      </Link>
     </Button>
   );
 }
