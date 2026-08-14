@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import type { Conversation } from "@/features/conversations/api/conversations-api";
 import { useDeleteConversation } from "@/features/conversations/hooks/use-delete-conversation";
@@ -40,6 +41,23 @@ export function DeleteConversationDialog({
   const router = useRouter();
   const { mutate, isPending } = useDeleteConversation();
 
+  /**
+   * The prop goes null the moment the dialog is dismissed, but Radix keeps the
+   * node mounted through its close animation — so rendering the title straight
+   * from the prop flashes an empty “” for the length of that fade. Holding the
+   * last one shown keeps the text stable while it disappears.
+   *
+   * Adjusting state during render rather than in an effect: React re-runs the
+   * component immediately, so the stale value never reaches the DOM.
+   */
+  const [lastShown, setLastShown] = useState<Conversation | null>(conversation);
+
+  if (conversation && conversation.id !== lastShown?.id) {
+    setLastShown(conversation);
+  }
+
+  const shown = conversation ?? lastShown;
+
   const confirm = (): void => {
     if (!conversation) {
       return;
@@ -77,8 +95,8 @@ export function DeleteConversationDialog({
             {/* Naming the thread matters: the trigger is a small icon on a
                 hover-revealed row, so it is genuinely possible to open this
                 for the wrong one. */}
-            “{conversation?.title}” and every message in it will be deleted.
-            This can&apos;t be undone.
+            “{shown?.title}” and every message in it will be deleted. This
+            can&apos;t be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
