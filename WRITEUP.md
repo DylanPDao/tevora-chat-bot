@@ -2,213 +2,179 @@
 
 ## How I used AI tooling
 
-I built this with Claude Code, and the honest summary is that I used it as a
-**pair with a very good memory and no judgement about what matters**. It wrote
-most of the lines. I decided what the lines should guarantee.
+I built this with Claude Code. The short version: it wrote most of the lines, I
+decided what the lines had to guarantee.
 
-### The prompting approach that actually worked
+### What worked
 
-Three habits did most of the work.
+**Talking through each phase before writing any of it.** This sounds like
+overhead and wasn't. The best example came from the cheapest-looking task in the
+project — adding a landing page. That's a one-file change. But talking it
+through first surfaced that the app matched public routes with `startsWith`, so
+adding `"/"` to that list would have matched *every* path in the app and quietly
+turned route protection off. Login would still work. Sign-out would still work.
+Every conversation would have been readable without signing in. Thirty seconds
+of conversation caught something that's nearly invisible in review, because the
+diff is one string in an array.
 
-**Discuss before writing.** Every phase started as a conversation — what it
-covers, where it could go wrong, which decisions are genuinely mine. That
-surfaces things a "build me a chat app" prompt buries.
+The same habit did quieter work too. Asking "what are our options here?" instead
+of "build this" turned up a Prisma feature that let me put the ownership check
+*inside* the database write rather than in an `if` wrapped around it — so
+there's no unguarded path for a future caller to stumble onto. It also caught me
+contradicting myself: I'd written down that conversations get created before
+streaming starts *and* that they're named after the first message, which can't
+both be true if creation happens first.
 
-The clearest payoff was the cheapest-looking task in the project. Adding a
-landing page is a one-file change; talking it through first surfaced that the
-app matched public routes with `startsWith`, so adding `"/"` to that list would
-have matched **every path in the app** and silently switched route protection
-off. Login would still work, sign-out would still work, and every conversation
-would have been readable without a session. It cost thirty seconds to say out
-loud, and it is exactly the kind of thing that survives review — the diff is one
-string in an array.
+**Making it check the installed packages instead of trusting its memory.** I put
+a rule in `CLAUDE.md`: read the actual type definitions before using anything
+from the AI SDK. Every single fact it offered from memory was for an older
+version. `useChat` doesn't have the properties it thought. One function it
+suggested is deprecated. And `maxTokens` — the option it reached for to cap
+response length — doesn't exist in this version at all. That last one is the
+scary kind of wrong, because the code looks like it sets a limit and silently
+doesn't.
 
-The same habit did quieter work elsewhere. Asking "what are our options" for
-scoping messages, rather than "build it", turned up Prisma's extended
-where-unique — which let the ownership filter live *inside* the write rather
-than in a check wrapped around it, so there is no unscoped path a later caller
-could take by accident. And it caught two of my own written-down decisions
-contradicting each other: conversations were to be created before streaming
-*and* titled from the first user message, which is impossible if creation
-happens first. The fix — create the conversation carrying its opening message —
-is what the code does now.
+**Asking for proof, not just the feature.** "Build the delete endpoint" gets you
+an endpoint. "Show me user B can't delete user A's conversation" gets you the
+endpoint plus two real accounts and a byte-for-byte comparison of the two 404
+responses. Nearly everything in the commit log has a check behind it, and the
+checks found things that reading never would.
 
-**Make it verify against the installed packages, not its memory.** I put a rule
-in `CLAUDE.md` — read the type in `node_modules` before using an AI SDK export —
-because the published examples for `ai@7` are mostly written for v3/v4 and are
-wrong. This paid for itself repeatedly. `useChat` has no `input` or `isLoading`
-in v7. `toUIMessageStreamResponse` is deprecated. And **`maxTokens` is not an
-option at all** — it's `maxOutputTokens`, so the old name is silently ignored.
-That last one is the dangerous kind of wrong: the code looks like it caps output,
-and doesn't.
+### What I handed off, and what I kept
 
-**Ask for the verification, not just the feature.** "Build the delete endpoint"
-gets you a delete endpoint. "Prove user B can't delete user A's conversation"
-gets you a delete endpoint plus two real accounts and a byte-comparison of the
-404 bodies. Almost every claim in the commit log has a check behind it, and the
-checks found things reading never would.
+I handed off almost all the implementation, and all of the "what is this
+actually called" work — reading type definitions, checking what a config helper
+resolves, tracing which environment variable something reads. That's tedious and
+mechanical and a tool with a terminal is genuinely better at it than I am.
 
-### What I delegated, and what I didn't
+I kept every decision with a trade-off in it. How long sessions last. Password
+rules. Whether a feature was worth building at all. Whether an abstraction
+earned its place. I also kept the structural arguments — I pushed back on
+layouts it proposed more than once, and once it pushed back on me with a better
+reason than I had.
 
-**Delegated:** nearly all implementation, and the entirety of the "what is this
-library actually called" work — reading type definitions, checking registry
-contents, tracing which env var a config helper resolves. That research is
-tedious, mechanical, and exactly where a tool with a terminal beats me.
+I wrote decisions down as I made them rather than reconstructing them later,
+which is why this document is built from notes instead of memory.
 
-**Kept:** every decision with a trade-off in it. Session length. Password rules.
-Whether to build the title-upgrade model call. Whether the sidebar needed
-optimistic updates. Whether an extra abstraction earned its keep. I also kept
-the naming and structure arguments — several times I pushed back on a layout the
-tool proposed, and once it pushed back on me with a better reason than I had.
+### Where it really helped
 
-I kept a running decisions log as I went, one entry per choice, written at the
-time rather than reconstructed afterwards. It's why this document could be
-written from notes instead of memory.
+Finding bugs I wouldn't have thought to look for.
 
-### Where it helped most
+- **The clean clone was broken**, and I only found out by having it actually
+  clone the repo somewhere else and follow my own README. It failed on the first
+  command. The setup step I'd added specifically to make a fresh clone work was
+  the thing breaking it.
+- **A production build couldn't sign anyone in.** Auth.js won't trust the host
+  header in production unless it can verify where it's running, and both local
+  development and Vercel happen to satisfy that on their own — so the problem
+  only appears anywhere else.
+- **The 502 handler was dead code.** A failed model call doesn't throw, it fails
+  inside the stream after the response has already started, so the error
+  handling I'd written could never run.
+- **A confirmation dialog flashed an empty name** while it was closing. Only
+  visible by actually clicking it.
 
-Finding the bugs I wouldn't have looked for.
-
-- The **clean clone was broken** and I only learned that by having it actually
-  clone the repo into a temp directory and follow the README. `npm ci` runs
-  `prisma generate` via a postinstall hook; `prisma.config.ts` resolved
-  `DATABASE_URL` eagerly; the variable doesn't exist yet at that point. The very
-  hook I'd added to make a clean clone work was breaking it.
-- A **production build couldn't sign anyone in**. Auth.js won't trust the `Host`
-  header in production unless it can verify the origin, and development and
-  Vercel each satisfy that on their own — so it only appears when you run
-  `npm start` locally or deploy anywhere else.
-- The **502 path was unreachable**. `streamText` doesn't throw; a rejected model
-  call surfaces inside the stream after a `200` is already sent, so the
-  `try/catch` was dead code and the rule in `CLAUDE.md` wasn't being honoured.
-- A **confirmation dialog flashed an empty title** during its close animation.
-  Only visible by driving the UI.
-
-None of these are subtle in hindsight. All four were invisible from reading.
+None of these are clever in hindsight. All four were invisible from reading the
+code.
 
 ### Where it got in the way
 
-**It is confidently wrong about its own ecosystem.** Every AI SDK fact it
-volunteered from memory was for an older major version. The `node_modules` rule
-wasn't optional; without it I'd have shipped several silently broken calls.
+**It's confidently wrong about its own ecosystem.** See above — without the
+check-the-source rule I'd have shipped several quietly broken calls.
 
-**It optimises for the request, not the codebase.** Asked for a button, it
-hand-rolls the pending state. Asked for another button, it hand-rolls it again.
-By the fourth I had four copies of the same six lines — and it had never
-mentioned the pattern. I noticed; it didn't. It's a good bricklayer and an
-indifferent architect.
+**It solves the request, not the codebase.** Ask for a button, it hand-rolls the
+loading state. Ask for another, it hand-rolls it again. By the fourth I had four
+copies of the same six lines and it had never once mentioned the pattern. Good
+bricklayer, indifferent architect.
 
-**Verification needs to be demanded — and even demanded, it has edges.** Left
-alone it reports "typechecks and lints" as if that were evidence. Typechecking
-proves a shape, not a behaviour: the empty-title flash and the dead 502 both
+**"Typechecks and lints" gets reported like evidence.** It isn't. Typechecking
+proves a shape, not a behaviour — the dead 502 and the flashing dialog both
 typechecked perfectly.
 
-The sharpest example is a bug we shipped and both missed. A wrong password left
-the sign-in button stuck on "Signing in…" with no error, because a rejected
-credentials sign-in returns **HTTP 200** with the failure buried in the response
-body — so next-auth's `ok` field, which is just `res.ok`, is `true` for a failed
-login. We branched on `ok`, and every failed sign-in took the success path.
+The sharpest example is a bug we shipped together. A wrong password left the
+sign-in button stuck on "Signing in…" with no error at all. The cause: a
+rejected login comes back as a *successful* HTTP response with the failure
+tucked inside the body, so the library's `ok` field is `true` even when the
+login failed. We checked `ok`, so every failed login took the success path.
 
-What makes it instructive is that the failure path *had* been verified — over
-HTTP, where it correctly showed no session issued and flat response timing
-between a wrong password and an unknown email. Those checks still pass. But the
-browser test only ever exercised a *successful* login, so the bug lived exactly
-in the gap between the two layers: correct server, correct request, client
-reading the wrong field. It surfaced when a human clicked around and a browser
-autofilled an email the test database had never heard of.
+What makes it worth writing down is that I *had* tested that path — over HTTP,
+where it correctly showed no session was created. That test still passes. But
+the browser test only ever tried a password that worked. The bug lived in the
+gap between the two, and it surfaced when a real person clicked around and their
+browser autofilled an email my test database had never heard of.
 
-The lesson I'd carry forward: verifying a path at one layer creates a strong
-feeling of coverage that the next layer does not inherit. Ask for the unhappy
-path *through the same surface a user touches* — not merely for the unhappy path.
-
-**Automation is not the same as testing.** Synthetic browser clicks silently
-failed to reach React's handlers, making a working sign-out button look dead. It
-burned real time before we established the harness was at fault, not the code.
+The lesson I'd carry forward: checking a path at one layer feels like coverage,
+and the next layer doesn't inherit it. Ask for the unhappy path *through the
+same surface a person actually touches*.
 
 ## Decisions and trade-offs
 
-The full log is 29 entries; these are the ones I'd defend in review.
+**Password auth instead of Clerk or OAuth.** The first thing you said you'd
+check is that it runs from a clean clone. Clerk and GitHub OAuth both fail that
+— you'd have to create a third-party account and paste keys in before anything
+starts. Rolling your own password auth is the wrong call in production, and not
+because hashing is hard: it means owning password resets, breach checks, MFA,
+and session revocation. I took that trade knowingly and mitigated what I could —
+bcrypt at cost 12, the same error message whether the password is wrong or the
+account doesn't exist, a dummy hash comparison so response timing doesn't leak
+which one it was, and 24-hour sessions because with no way to revoke a token,
+its lifetime *is* the revocation window.
 
-**Credentials auth over Clerk or OAuth.** The first criterion is that it runs
-from a clean clone. Clerk and GitHub OAuth both fail it — the reviewer has to
-create a third-party account and paste keys before anything boots. Rolling your
-own password auth is the wrong call in production, and not because hashing is
-hard: it means owning password reset, breach-list checks, MFA, and session
-revocation. Auth.js's credentials provider also forces JWT sessions, so a
-session cannot be killed server-side before it expires. I took that trade
-deliberately and mitigated what I could — bcrypt cost 12, an identical error for
-wrong-password and no-such-user, a constant-time compare against a decoy hash so
-timing doesn't leak account existence, and a **24-hour** session because with no
-revocation, `maxAge` *is* the revocation window.
+**Ownership goes in the query, not in an `if` after it.** Every lookup filters
+on the user as well as the id, in the same statement. There's no unscoped path
+to forget. A miss returns a 404 identical to one for an id that never existed,
+so the API won't even confirm someone else's conversation is real. Verified with
+two accounts.
 
-**Ownership pushed into the query, never checked around it.** `Conversation.userId`
-is the boundary. Every service call filters on it in the same statement that
-finds the row — `findFirst({ where: { id, userId } })`,
-`deleteMany({ where: { id, userId } })`, and for messages a `conversation.update`
-whose where-unique carries both. There is no unscoped path to forget. A miss
-returns 404 with a body byte-identical to a fabricated id, verified with two real
-accounts, so the API never confirms someone else's conversation exists.
+**One error shape everywhere**, with the HTTP status derived from a code, so
+clients branch on the code instead of matching message text.
 
-**One error envelope, status derived from the code.** Clients branch on `code`,
-never on message text.
+**A failed model call never leaves half a turn behind.** Your message is saved
+before the model is called; if the call fails you get a 502 and no reply row. I
+got to see this work twice — once on purpose, and once when my API credit ran
+out mid-request.
 
-**No half turn on a failed model call.** The user's message commits before the
-model is called. If the call fails you get a 502 and no assistant row. I got to
-verify this twice — once deliberately, and once when my API key ran out of credit
-mid-request.
+**No tests.** You said not to gold-plate it, and tests aren't in the brief. On a
+four-hour budget an hour of test setup comes straight out of the README and this
+document. Being straight about the cost: every change from here is checked by
+hand, and the ownership rule — the thing keeping one person's conversations away
+from another's — has nothing watching it. That's a real gap, not a neutral one.
 
-**TanStack Query for the sidebar only.** `useChat` owns the thread; Query owns
-the list; they meet at exactly one seam. Mirroring messages into Query is the bug
-that follows otherwise.
+## What I'd do next
 
-**No tests.** The brief doesn't ask for them and opens with "don't gold-plate
-it". On four hours, an hour of test infrastructure comes straight out of the
-README and this document — two of the six things being graded. Stated plainly:
-every refactor from here is verified by hand, and the ownership check that stops
-one user reading another's conversations has no regression guard. That's a real
-gap, not a neutral one.
+**Roughly in this order:**
 
-## What I'd do differently with more time
+1. **Tests on the ownership rule.** It's the one thing I checked by hand that
+   really ought to be checked automatically, every time. Right now a future
+   change could quietly undo it and everything would still compile.
+2. **A way to end a session early.** Password auth means sessions can't be
+   revoked before they expire, which is why they only last a day. Adding a
+   "sessions issued before this moment are no longer valid" timestamp fixes it
+   in about twenty lines, and it's the biggest real gap in the auth.
+3. **Rate limiting on sign-up and chat** — brute-force protection on one, cost
+   control on the other. Neither has any right now.
+4. **Tidy up the repetition.** A small helper is copy-pasted between two files,
+   the "is this person signed in?" check is duplicated in every route, and the
+   button loading state is hand-written four times. The route one matters most:
+   wrapping it would turn "is every endpoint protected?" from something you read
+   four files to confirm into something you can search for.
+5. **Cache the conversation history sent to the model.** Every message re-sends
+   the whole thread, so cost climbs steeply as conversations grow. Caching cuts
+   the repeated part to about a tenth.
+6. **Check new passwords against known breaches** — worth far more than any
+   rule about symbols and capital letters.
 
-**In this order:**
+**Further out**, and really one feature with three names: roles and permissions,
+an audit log, and an admin panel to make both legible. Alongside those, per-user
+spending limits (monitoring tells you someone spent forty dollars; a limit stops
+them) and a way to delete your account — conversations clean up after
+themselves today, but people can't remove themselves.
 
-1. **Service-layer tests on the ownership check.** IDOR is the failure that
-   matters, and it's the one thing I verified by hand that should be verified by
-   CI.
-2. **Session revocation.** Decision #1 accepted that a credentials provider
-   forces JWT sessions, so nothing can kill a session before it expires — which
-   is why `maxAge` is 24 hours rather than the 30-day default. A
-   `tokensValidAfter` timestamp on `User`, bumped on sign-out and password
-   change and checked in the `jwt` callback, buys the capability back for about
-   twenty lines. It is the largest genuine gap in the auth design.
-3. **Rate limiting on `/api/register` and `/api/chat`.** Brute-force defence on
-   one, cost control on the other. Neither has any today.
-4. **Collapse the duplication that has accumulated.** `isApiError` is
-   byte-identical in two client fetchers and belongs in `shared/http.ts` beside
-   the envelope it parses; the four-line `auth()` guard is copied into every
-   protected handler and should be a `withAuth` wrapper — which would also turn
-   "is every handler authenticated?" into a grep for one symbol rather than a
-   read of four files; and the pending-state logic behind every async button is
-   hand-rolled four times over. The through-line is the same one the ownership
-   filter already follows: prefer the version a future caller cannot get wrong.
-5. **Prompt caching on the chat history.** Every turn re-sends the whole
-   conversation, so cost grows with the square of its length. Cache reads are
-   ~0.1× and this model's minimum cacheable prefix is 512 tokens, so it would
-   start paying off within a couple of turns.
-6. **A breached-password check at registration** — the control that would
-   actually matter, more than any composition rule.
+**And one I designed and then deliberately dropped:** having the model write a
+proper title for each conversation. Right now the title is just the first line
+you typed, trimmed. That works completely on its own, which is exactly why it
+was the safe thing to cut.
 
-**Further out, and grouped because they arrive together:** RBAC, audit logging,
-and an admin panel are one feature wearing three names — the first two are
-conventions the role description calls for, and the third is what makes them
-legible. Alongside those: per-user token quotas (monitoring tells you someone
-spent forty dollars; a quota stops them) and an account-deletion path, since
-conversations cascade today but there is no way for a user to remove themselves.
-
-**And one designed then deliberately cut:** the title upgrade — a model call in
-`onFinish` that rewrites the truncated title into a real summary. The truncation
-alone is a complete feature, which is exactly why it was the safe thing to drop.
-
-**And two I'd revisit rather than add:** the `dev` → `main` promotion flow costs
-a second merge for every fix, and the deep per-domain directory nesting is on the
-heavy side for an app this small — both defensible, neither free.
+**Two things I'd reconsider rather than add:** the branching setup costs an
+extra merge for every fix, and the folder structure is heavier than an app this
+size needs. Both defensible, neither free.
