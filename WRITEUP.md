@@ -175,19 +175,39 @@ gap, not a neutral one.
 1. **Service-layer tests on the ownership check.** IDOR is the failure that
    matters, and it's the one thing I verified by hand that should be verified by
    CI.
-2. **Prompt caching on the chat history.** Every turn re-sends the whole
+2. **Session revocation.** Decision #1 accepted that a credentials provider
+   forces JWT sessions, so nothing can kill a session before it expires — which
+   is why `maxAge` is 24 hours rather than the 30-day default. A
+   `tokensValidAfter` timestamp on `User`, bumped on sign-out and password
+   change and checked in the `jwt` callback, buys the capability back for about
+   twenty lines. It is the largest genuine gap in the auth design.
+3. **Rate limiting on `/api/register` and `/api/chat`.** Brute-force defence on
+   one, cost control on the other. Neither has any today.
+4. **Collapse the duplication that has accumulated.** `isApiError` is
+   byte-identical in two client fetchers and belongs in `shared/http.ts` beside
+   the envelope it parses; the four-line `auth()` guard is copied into every
+   protected handler and should be a `withAuth` wrapper — which would also turn
+   "is every handler authenticated?" into a grep for one symbol rather than a
+   read of four files; and the pending-state logic behind every async button is
+   hand-rolled four times over. The through-line is the same one the ownership
+   filter already follows: prefer the version a future caller cannot get wrong.
+5. **Prompt caching on the chat history.** Every turn re-sends the whole
    conversation, so cost grows with the square of its length. Cache reads are
    ~0.1× and this model's minimum cacheable prefix is 512 tokens, so it would
    start paying off within a couple of turns.
-3. **An `ActionButton` and a `ConfirmDialog`.** Four hand-rolled copies of the
-   same pending-state logic, and one dialog carrying a close-animation fix that
-   every future dialog would otherwise have to rediscover.
-4. **The title upgrade.** Designed and deliberately cut: a model call in
-   `onFinish` rewrites the truncated title into a real summary. The truncation
-   alone is a complete feature, which is exactly why it was the safe thing to
-   drop.
-5. **A breached-password check at registration** — the control that would
+6. **A breached-password check at registration** — the control that would
    actually matter, more than any composition rule.
+
+**Further out, and grouped because they arrive together:** RBAC, audit logging,
+and an admin panel are one feature wearing three names — the first two are
+conventions the role description calls for, and the third is what makes them
+legible. Alongside those: per-user token quotas (monitoring tells you someone
+spent forty dollars; a quota stops them) and an account-deletion path, since
+conversations cascade today but there is no way for a user to remove themselves.
+
+**And one designed then deliberately cut:** the title upgrade — a model call in
+`onFinish` that rewrites the truncated title into a real summary. The truncation
+alone is a complete feature, which is exactly why it was the safe thing to drop.
 
 **And two I'd revisit rather than add:** the `dev` → `main` promotion flow costs
 a second merge for every fix, and the deep per-domain directory nesting is on the
