@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useCallback, useState } from "react";
 
@@ -17,14 +17,38 @@ import type { Credentials } from "@/features/auth/schemas/auth-schemas";
  */
 const SIGN_IN_FAILED = "That email or password isn't right.";
 
+const DEFAULT_DESTINATION = "/chat";
+
+/**
+ * `?from=` arrives from middleware and is therefore attacker-controllable — a
+ * crafted link is enough. Anything that could leave this origin is discarded
+ * rather than sanitized, since a login form that redirects offsite after a
+ * successful sign-in is a credible phishing hop.
+ *
+ * A leading `/` is not sufficient on its own: `//evil.com` is protocol-relative
+ * and `/\evil.com` is treated as protocol-relative by some browsers.
+ */
+function safeRedirectTarget(from: string | null): string {
+  if (!from || !from.startsWith("/")) {
+    return DEFAULT_DESTINATION;
+  }
+
+  if (from.startsWith("//") || from.startsWith("/\\")) {
+    return DEFAULT_DESTINATION;
+  }
+
+  return from;
+}
+
 export type UseLogin = {
   submit: (credentials: Credentials) => Promise<void>;
   error: string | null;
   isPending: boolean;
 };
 
-export function useLogin(redirectTo: string): UseLogin {
+export function useLogin(): UseLogin {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
 
@@ -50,9 +74,9 @@ export function useLogin(redirectTo: string): UseLogin {
       // signed-out render. `refresh()` re-fetches them before navigating, so
       // the destination doesn't paint as a logged-out user first.
       router.refresh();
-      router.push(redirectTo);
+      router.push(safeRedirectTarget(searchParams.get("from")));
     },
-    [redirectTo, router],
+    [router, searchParams],
   );
 
   return { submit, error, isPending };
