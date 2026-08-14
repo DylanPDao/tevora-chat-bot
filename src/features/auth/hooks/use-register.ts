@@ -83,7 +83,9 @@ export function useRegister({
         redirect: false,
       });
 
-      if (!signedIn?.ok) {
+      // Same trap as use-login: a rejected credentials sign-in is an HTTP 200,
+      // so `ok` is true and only `error` tells the truth.
+      if (!signedIn || signedIn.error) {
         // The account is real at this point, so sending them to sign in
         // manually is the honest recovery. Retrying registration would hit
         // EMAIL_TAKEN on their own brand-new account.
