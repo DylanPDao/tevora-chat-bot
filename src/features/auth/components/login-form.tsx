@@ -29,7 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 export function LoginForm(): React.ReactNode {
-  const { submit, error, isPending } = useLogin("/chat");
+  const { submit, error, isPending } = useLogin();
 
   // The same schema the credentials provider parses server-side, so the two
   // cannot drift. Here it only catches empty fields before a pointless round
