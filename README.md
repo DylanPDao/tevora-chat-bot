@@ -47,6 +47,23 @@ is the guarantee you want on a fresh clone. Day-to-day work still uses
 | `DATABASE_URL` | yes | Pre-filled for the bundled Postgres. Point it anywhere else and nothing else changes. |
 | `AUTH_SECRET` | yes | Signs the session JWT. At least 32 characters — `openssl rand -base64 32`. |
 | `ANTHROPIC_API_KEY` | yes | Server-side only. There is no `NEXT_PUBLIC_` variant and no model call originates in the browser. |
+| `AUTH_URL` | only for non-Vercel production | See below. Not needed for `npm run dev` or for Vercel. |
+
+### Running a production build
+
+`npm run dev` needs nothing extra. A **production** build hosted anywhere other
+than Vercel — including `npm run build && npm start` on your own machine — also
+needs `AUTH_URL`:
+
+```bash
+AUTH_URL="http://localhost:3000" npm start
+```
+
+Auth.js will not trust the `Host` header in production unless it can verify the
+origin, and without this every sign-in fails with `UntrustedHost`. Development
+and Vercel each satisfy that check on their own, which is why it only bites
+here. Setting `trustHost: true` in the config would remove the variable, but it
+means trusting a header an attacker controls — so it is a deliberate omission.
 
 All three are parsed with Zod at startup, so a missing or malformed value fails
 immediately with a readable message rather than as a mystery 500 on the first
