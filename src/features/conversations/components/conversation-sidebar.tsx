@@ -7,6 +7,7 @@ import { SignOutButton } from "@/features/auth/components/sign-out-button";
 import type { Conversation } from "@/features/conversations/api/conversations-api";
 import { ConversationList } from "@/features/conversations/components/conversation-list";
 import { DeleteConversationDialog } from "@/features/conversations/components/delete-conversation-dialog";
+import { NewChatButton } from "@/features/conversations/components/new-chat-button";
 import { useConversations } from "@/features/conversations/hooks/use-conversations";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -31,8 +32,9 @@ export function ConversationSidebar(): React.ReactNode {
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r">
-      <div className="p-3">
-        <p className="text-sm font-medium">Conversations</p>
+      <div className="flex flex-col gap-2 p-2">
+        <p className="px-1 text-sm font-medium">Conversations</p>
+        <NewChatButton />
       </div>
 
       <Separator />
