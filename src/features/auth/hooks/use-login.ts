@@ -64,7 +64,13 @@ export function useLogin(): UseLogin {
         redirect: false,
       });
 
-      if (!result?.ok) {
+      // Branch on `error`, never on `ok`. A rejected credentials sign-in is a
+      // successful HTTP 200 whose body carries the failure in a URL — so
+      // `ok`, which is just `res.ok`, is `true` for a wrong password. Checking
+      // it instead sends a failed login down the success path: no message, and
+      // `isPending` left true on purpose for a redirect that then bounces
+      // straight back here. The button says "Signing in…" forever.
+      if (!result || result.error) {
         setError(SIGN_IN_FAILED);
         setIsPending(false);
         return;
