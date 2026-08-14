@@ -49,72 +49,115 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* --- Black + neon --------------------------------------------------------
+   * One palette, no light mode. Every shadcn component reads these tokens, so
+   * the whole app restyles from here rather than from per-component classes —
+   * which is the only reason a theme change this broad is a small diff.
+   *
+   * Cyan carries the interactive weight (buttons, focus rings, the user's own
+   * messages) and magenta is reserved for destructive, so "this is dangerous"
+   * never looks like "this is a button". Foregrounds on both neons are near
+   * black: bright colour with dark text is what reads as a lit sign rather
+   * than a highlighter.
+   * ---------------------------------------------------------------------- */
+  --background: oklch(0.14 0.012 285);
+  --foreground: oklch(0.97 0.005 285);
+  --card: oklch(0.18 0.016 285);
+  --card-foreground: oklch(0.97 0.005 285);
+  --popover: oklch(0.18 0.016 285);
+  --popover-foreground: oklch(0.97 0.005 285);
+
+  --primary: oklch(0.84 0.155 196);
+  --primary-foreground: oklch(0.14 0.012 285);
+  --secondary: oklch(0.24 0.02 285);
+  --secondary-foreground: oklch(0.97 0.005 285);
+
+  --muted: oklch(0.22 0.018 285);
+  --muted-foreground: oklch(0.72 0.02 285);
+  --accent: oklch(0.28 0.045 196);
+  --accent-foreground: oklch(0.9 0.12 196);
+
+  --destructive: oklch(0.7 0.24 3);
+
+  /* Borders sit just far enough above the background to read as edges without
+     turning every panel into a box. */
+  --border: oklch(0.28 0.022 285);
+  --input: oklch(0.3 0.024 285);
+  --ring: oklch(0.84 0.155 196);
+
+  --chart-1: oklch(0.84 0.155 196);
+  --chart-2: oklch(0.7 0.24 3);
+  --chart-3: oklch(0.78 0.17 92);
+  --chart-4: oklch(0.66 0.2 300);
+  --chart-5: oklch(0.75 0.16 145);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  /* The sidebar sits below the content plane, so it recedes rather than
+     competing with the thread. */
+  --sidebar: oklch(0.11 0.012 285);
+  --sidebar-foreground: oklch(0.97 0.005 285);
+  --sidebar-primary: oklch(0.84 0.155 196);
+  --sidebar-primary-foreground: oklch(0.14 0.012 285);
+  --sidebar-accent: oklch(0.2 0.02 285);
+  --sidebar-accent-foreground: oklch(0.97 0.005 285);
+  --sidebar-border: oklch(0.24 0.02 285);
+  --sidebar-ring: oklch(0.84 0.155 196);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* --- Black + neon --------------------------------------------------------
+   * One palette, no light mode. Every shadcn component reads these tokens, so
+   * the whole app restyles from here rather than from per-component classes —
+   * which is the only reason a theme change this broad is a small diff.
+   *
+   * Cyan carries the interactive weight (buttons, focus rings, the user's own
+   * messages) and magenta is reserved for destructive, so "this is dangerous"
+   * never looks like "this is a button". Foregrounds on both neons are near
+   * black: bright colour with dark text is what reads as a lit sign rather
+   * than a highlighter.
+   * ---------------------------------------------------------------------- */
+  --background: oklch(0.14 0.012 285);
+  --foreground: oklch(0.97 0.005 285);
+  --card: oklch(0.18 0.016 285);
+  --card-foreground: oklch(0.97 0.005 285);
+  --popover: oklch(0.18 0.016 285);
+  --popover-foreground: oklch(0.97 0.005 285);
+
+  --primary: oklch(0.84 0.155 196);
+  --primary-foreground: oklch(0.14 0.012 285);
+  --secondary: oklch(0.24 0.02 285);
+  --secondary-foreground: oklch(0.97 0.005 285);
+
+  --muted: oklch(0.22 0.018 285);
+  --muted-foreground: oklch(0.72 0.02 285);
+  --accent: oklch(0.28 0.045 196);
+  --accent-foreground: oklch(0.9 0.12 196);
+
+  --destructive: oklch(0.7 0.24 3);
+
+  /* Borders sit just far enough above the background to read as edges without
+     turning every panel into a box. */
+  --border: oklch(0.28 0.022 285);
+  --input: oklch(0.3 0.024 285);
+  --ring: oklch(0.84 0.155 196);
+
+  --chart-1: oklch(0.84 0.155 196);
+  --chart-2: oklch(0.7 0.24 3);
+  --chart-3: oklch(0.78 0.17 92);
+  --chart-4: oklch(0.66 0.2 300);
+  --chart-5: oklch(0.75 0.16 145);
+  --radius: 0.625rem;
+
+  /* The sidebar sits below the content plane, so it recedes rather than
+     competing with the thread. */
+  --sidebar: oklch(0.11 0.012 285);
+  --sidebar-foreground: oklch(0.97 0.005 285);
+  --sidebar-primary: oklch(0.84 0.155 196);
+  --sidebar-primary-foreground: oklch(0.14 0.012 285);
+  --sidebar-accent: oklch(0.2 0.02 285);
+  --sidebar-accent-foreground: oklch(0.97 0.005 285);
+  --sidebar-border: oklch(0.24 0.02 285);
+  --sidebar-ring: oklch(0.84 0.155 196);
 }
 
 @layer base {
@@ -126,5 +169,42 @@
   }
   html {
     @apply font-sans;
+    /* Tells the browser this is a dark UI, so scrollbars, form controls, and
+       the flash before hydration render dark instead of white. Without it the
+       native chrome stays light and gives the whole thing a seam. */
+    color-scheme: dark;
   }
+}
+/* ---------------------------------------------------------------------------
+ * Landing page only.
+ *
+ * These exist to make `/` look like a banner ad that followed you home. Nothing
+ * else in the app uses them — the joke is that the front door is obnoxious and
+ * everything behind the login is not.
+ *
+ * Every consumer applies these through Tailwind's `motion-safe:` variant, so
+ * they are inert for anyone who has asked their system to stop animating
+ * things. Reduced motion should mean a still page, not an unreadable one.
+ * ------------------------------------------------------------------------- */
+@theme {
+  --animate-ad-marquee: ad-marquee 22s linear infinite;
+  --animate-ad-throb: ad-throb 1.1s ease-in-out infinite;
+  --animate-ad-shimmer: ad-shimmer 2.4s linear infinite;
+}
+
+@keyframes ad-marquee {
+  /* The track holds two copies of the text, so -50% lands exactly on the seam
+     and the loop has no visible jump. */
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes ad-throb {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+@keyframes ad-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }
