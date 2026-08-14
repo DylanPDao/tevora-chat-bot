@@ -1,31 +1,18 @@
 import type { Metadata } from "next";
 
-import { SignOutButton } from "@/features/auth/components/sign-out-button";
-import { auth } from "@/server/auth";
-
 export const metadata: Metadata = { title: "Chat" };
 
 /**
- * Placeholder. Phase 2 replaces this with the sidebar and Phase 3 with the
- * thread.
- *
- * The `auth()` call is the real thing, not scaffolding: middleware has already
- * verified the JWT before this renders, but reading it here proves the session
- * is available to a Server Component — which is how every Phase 2 query will
- * get the `userId` it scopes by.
+ * The no-conversation-selected state. Phase 3 replaces this with the composer
+ * that starts a new thread — at which point the flow becomes: type here,
+ * create the conversation with that message as its title, then navigate to it.
  */
-export default async function ChatPage(): Promise<React.ReactNode> {
-  const session = await auth();
-
+export default function ChatPage(): React.ReactNode {
   return (
     <div className="flex flex-1 items-center justify-center p-6">
-      <div className="flex flex-col items-center gap-4 text-center">
-        <h1 className="text-xl font-semibold">Signed in</h1>
-        <p className="text-sm text-muted-foreground">
-          Session belongs to {session?.user.email} ({session?.user.id}).
-        </p>
-        <SignOutButton />
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Select a conversation, or start a new one.
+      </p>
     </div>
   );
 }
