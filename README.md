@@ -83,12 +83,54 @@ Supabase — and skip step 3. Nothing else in the setup changes.
 | | |
 | --- | --- |
 | `npm run dev` | Development server |
-| `npm run build` / `npm start` | Production build and serve |
+| `npm run build` / `npm start` | Production build and serve. `build` applies migrations first — see Deploying. |
 | `npm run check:types` | `tsc --noEmit` |
 | `npm run lint` | ESLint |
 | `npm run db:up` / `db:down` | Start / stop the bundled Postgres |
 | `npm run db:migrate` | Apply migrations |
 | `npm run db:studio` | Prisma Studio |
+
+---
+
+## Deploying
+
+The app is a single Next.js project with no build configuration, so any Node
+host works. Vercel needs no `vercel.json` — it detects the framework and runs
+`npm run build`.
+
+**Three environment variables**, and only three:
+
+| | |
+| --- | --- |
+| `DATABASE_URL` | A hosted Postgres — Neon, Prisma Postgres, Supabase, RDS. |
+| `AUTH_SECRET` | Generate a **fresh** one for production; don't reuse the local value. |
+| `ANTHROPIC_API_KEY` | The same key type as local. |
+
+**`AUTH_URL` is not needed on Vercel** — the platform sets `VERCEL`, which
+satisfies Auth.js's host check on its own. Any *other* production host does need
+it (see [Running a production build](#running-a-production-build)); it is the
+single most likely thing to go wrong on a non-Vercel deploy, because everything
+builds and serves fine and only sign-in fails.
+
+### Migrations run at build time
+
+`npm run build` is `prisma migrate deploy && next build`. `migrate deploy` is
+the non-interactive form — it applies committed migrations and never generates
+or prompts — and it is idempotent, so re-running it on every deploy is a no-op
+once the schema is current.
+
+This is deliberate rather than incidental. Without it the build still succeeds,
+because `postinstall` generates the Prisma *client* and that is all the build
+needs — and then the first request that touches a table fails at runtime against
+an empty database. The failure reads like a connection problem rather than a
+missing schema, which is a bad half-hour.
+
+### If your host separates pooled and direct connections
+
+Some providers (Neon among them) hand out a pooled connection string for the app
+and a direct one for migrations. If `prisma migrate deploy` fails at build time
+while the app itself connects fine, that is the distinction to check — the
+provider's current Prisma guidance is the place to look, since the details move.
 
 ---
 
