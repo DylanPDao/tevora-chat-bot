@@ -38,7 +38,11 @@ export function MessageList({
   }
 
   return (
-    <div className="flex flex-col gap-3 p-4">
+    // Centred and capped: on a wide display an uncapped thread runs well past
+    // 150 characters a line, which is past the point where the eye reliably
+    // finds the start of the next one. The bubbles keep their own max-width for
+    // the shape; this is about line length.
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 p-4">
       {messages.map((message) => (
         <MessageBubble key={message.id} message={message} />
       ))}

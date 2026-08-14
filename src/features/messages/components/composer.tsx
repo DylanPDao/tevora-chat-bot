@@ -42,7 +42,9 @@ export function Composer({
 
   return (
     <form
-      className="flex items-end gap-2 border-t p-3"
+      // Matches the thread's max width above it, so the input lines up with the
+      // messages instead of spanning a screen they don't.
+      className="mx-auto flex w-full max-w-3xl items-end gap-2 border-t p-3"
       onSubmit={(event: FormEvent) => {
         event.preventDefault();
         submit();
