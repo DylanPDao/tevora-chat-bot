@@ -12,13 +12,26 @@ Three habits did most of the work.
 
 **Discuss before writing.** Every phase started as a conversation — what it
 covers, where it could go wrong, which decisions are genuinely mine. That
-surfaced things a "build me a chat app" prompt would have buried. The clearest
-example: two of my own written-down decisions contradicted each other.
-Conversations were to be created explicitly before streaming, *and* titled from
-the first user message — which is impossible if creation happens before any
-message exists. Talking through the phase caught it; the resolution was to
-create the conversation *carrying* its opening message, which is what the code
-does now.
+surfaces things a "build me a chat app" prompt buries.
+
+The clearest payoff was the cheapest-looking task in the project. Adding a
+landing page is a one-file change; talking it through first surfaced that the
+app matched public routes with `startsWith`, so adding `"/"` to that list would
+have matched **every path in the app** and silently switched route protection
+off. Login would still work, sign-out would still work, and every conversation
+would have been readable without a session. It cost thirty seconds to say out
+loud, and it is exactly the kind of thing that survives review — the diff is one
+string in an array.
+
+The same habit did quieter work elsewhere. Asking "what are our options" for
+scoping messages, rather than "build it", turned up Prisma's extended
+where-unique — which let the ownership filter live *inside* the write rather
+than in a check wrapped around it, so there is no unscoped path a later caller
+could take by accident. And it caught two of my own written-down decisions
+contradicting each other: conversations were to be created before streaming
+*and* titled from the first user message, which is impossible if creation
+happens first. The fix — create the conversation carrying its opening message —
+is what the code does now.
 
 **Make it verify against the installed packages, not its memory.** I put a rule
 in `CLAUDE.md` — read the type in `node_modules` before using an AI SDK export —
