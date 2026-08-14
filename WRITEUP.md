@@ -85,9 +85,28 @@ By the fourth I had four copies of the same six lines — and it had never
 mentioned the pattern. I noticed; it didn't. It's a good bricklayer and an
 indifferent architect.
 
-**Verification needs to be demanded.** Left alone it reports "typechecks and
-lints" as if that were evidence. Typechecking proves a shape, not a behaviour —
-the empty-title flash and the dead 502 both typechecked perfectly.
+**Verification needs to be demanded — and even demanded, it has edges.** Left
+alone it reports "typechecks and lints" as if that were evidence. Typechecking
+proves a shape, not a behaviour: the empty-title flash and the dead 502 both
+typechecked perfectly.
+
+The sharpest example is a bug we shipped and both missed. A wrong password left
+the sign-in button stuck on "Signing in…" with no error, because a rejected
+credentials sign-in returns **HTTP 200** with the failure buried in the response
+body — so next-auth's `ok` field, which is just `res.ok`, is `true` for a failed
+login. We branched on `ok`, and every failed sign-in took the success path.
+
+What makes it instructive is that the failure path *had* been verified — over
+HTTP, where it correctly showed no session issued and flat response timing
+between a wrong password and an unknown email. Those checks still pass. But the
+browser test only ever exercised a *successful* login, so the bug lived exactly
+in the gap between the two layers: correct server, correct request, client
+reading the wrong field. It surfaced when a human clicked around and a browser
+autofilled an email the test database had never heard of.
+
+The lesson I'd carry forward: verifying a path at one layer creates a strong
+feeling of coverage that the next layer does not inherit. Ask for the unhappy
+path *through the same surface a user touches* — not merely for the unhappy path.
 
 **Automation is not the same as testing.** Synthetic browser clicks silently
 failed to reach React's handlers, making a working sign-out button look dead. It
