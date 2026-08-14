@@ -18,13 +18,22 @@ import { authConfig } from "@/server/auth.config";
  */
 const { auth } = NextAuth(authConfig);
 
-/** Reachable without a session. Everything the matcher covers needs one. */
-const PUBLIC_ROUTES = ["/login", "/register"];
+/**
+ * Reachable without a session. Everything else the matcher covers needs one.
+ *
+ * Split by match type deliberately: `startsWith` on "/" would match every path
+ * in the app and quietly make the whole thing public. The landing page is the
+ * one route that has to be matched exactly.
+ */
+const PUBLIC_PREFIXES = ["/login", "/register"];
+const PUBLIC_EXACT = ["/"];
 
 export default auth((request) => {
   const { pathname } = request.nextUrl;
   const isSignedIn = Boolean(request.auth);
-  const isPublic = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+  const isPublic =
+    PUBLIC_EXACT.includes(pathname) ||
+    PUBLIC_PREFIXES.some((route) => pathname.startsWith(route));
 
   if (!isSignedIn && !isPublic) {
     const url = new URL("/login", request.url);
