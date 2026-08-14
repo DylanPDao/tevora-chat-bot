@@ -71,6 +71,16 @@ export function validationFailed(error: ZodError): Response {
   );
 }
 
+/**
+ * A validation failure that did not come from a Zod parse — for shapes a schema
+ * deliberately delegates to another validator, like the AI SDK checking its own
+ * `UIMessage` type. Same code and status as `validationFailed`, so clients
+ * branch identically; it just has no per-field detail to attach.
+ */
+export function invalidRequest(message: string): Response {
+  return apiError("VALIDATION_FAILED", message);
+}
+
 export function unauthenticated(): Response {
   return apiError("UNAUTHENTICATED", "You need to be signed in.");
 }
