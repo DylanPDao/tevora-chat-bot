@@ -3,11 +3,12 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useQueryClient } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { conversationsQueryKey } from "@/features/conversations/hooks/use-conversations";
 import { Composer } from "@/features/messages/components/composer";
 import { MessageList } from "@/features/messages/components/message-list";
+import { takePendingMessage } from "@/features/messages/pending-message";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 type ChatThreadProps = {
@@ -47,6 +48,26 @@ export function ChatThread({
       void queryClient.invalidateQueries({ queryKey: conversationsQueryKey });
     },
   });
+
+  /**
+   * A thread arrived at from `/chat` carries the message that created it. The
+   * ref guards against React running effects twice in development — without it
+   * the opening message would be sent, and persisted, twice.
+   */
+  const sentPending = useRef(false);
+
+  useEffect(() => {
+    if (sentPending.current) {
+      return;
+    }
+
+    const pending = takePendingMessage(conversationId);
+
+    if (pending) {
+      sentPending.current = true;
+      void sendMessage({ text: pending });
+    }
+  }, [conversationId, sendMessage]);
 
   // `status` replaces the `isLoading` of older versions. 'submitted' is the gap
   // between sending and the first token, when there is a request in flight but
